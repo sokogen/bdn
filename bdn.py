@@ -18,13 +18,14 @@ cfg={
 'firedstaffcol': 'Комната',						# Заголовок колонки для помечания уволенных сотрудников
 'firedstaffmarks': ('уволен','Уволен'),			# Метки для помечания уволенных сотрудников в колонке "Комната"
 
-### Настройка рассылок
+### Настройка оповещений
 'smtpserver': 'localhost',						# Адрес SMTP сервера
+'bdaysrange': (-1, 7),							# Количество дней "вокруг" дня рождения 
 'notificationtime': '09:00',					# Время рассылки оповещений
 'notificationweekdays': (1,2,3,4,5),			# Номера дней недели для оповещений
 }
 
-import json
+import json, re
 from urlparse import urlparse
 from datetime import datetime, timedelta
 import requests
@@ -74,54 +75,40 @@ class CflPageParser:
 		return self.tabledict
 
 	def getstaffdict(self):
-		#staffdict = tuple(map(lambda table: map(lambda person: filter(lambda room: room != "уволен", person[u'\u041a\u043e\u043c\u043d\u0430\u0442\u0430']),table), self.tablesdict))
 		return filter(lambda person: person[self.firedstaffcol].strip() not in self.firedstaffmarks, self.tablesdict)
 
 class BDNotice:
 	def __init__(self, cfg=cfg):
-		self.curdate = datetime.now()
+		self.today = datetime.now()
+		self.marginlow = self.today + timedelta(days=int(cfg['bdaysrange'][0]))
+		self.marginhigh = self.today + timedelta(days=int(cfg['bdaysrange'][-1]))
+		self.bdcol = cfg['bdcol'].decode('utf-8')
 		self.staffdict = CflPageParser().getstaffdict()
-		print (self.curdate-timedelta(days=65)).strftime("%Y-%m-%d")
+		print CflPageParser().getstaffdict()
+		self.createbdnoticedict(self.staffdict)
+		print self.checkbddate('22.01')
 
 	def createbdnoticedict(self, staffdict):
-		# Добавляем даты др "соседних" годов, для правильного определения на границах годов
-		
-		pass
+		for person in staffdict:
+			person[self.bdcol]=self.checkbddate(person[self.bdcol])
+			print person[self.bdcol]
+
+
+	def checkbddate(self, bddate):
+		bddate=re.compile(r'[^\d.]+').sub('', bddate.encode('utf-8').strip())
+		print bddate
+		if len(bddate)<4: return None
+		# Добавляем даты др соседних годов
+		bddates = map(lambda i: '{}.{}'.format(bddate, int(self.today.strftime("%Y"))+i), (-1, 0, 1))
+		# Возвращаем дату, если она находится в искомом диапазоне
+		for date in bddates:
+			date=datetime.strptime(date, '%d.%m.%Y')
+			print self.marginlow<=date and date<self.marginhigh
+			if self.marginlow<=date<self.marginhigh:
+				return date.strftime("%d.%m.%Y")
 
 	def sendbdnotice():
 		pass
 
 if __name__ == '__main__':
-#	page = CflPageParser()
-#	staffdict = page.getstaffdict()
-#
-#	print staffdict
 	n = BDNotice()
-
-
-#	resturl=getresturl(cfg['cflurl'])
-#	
-#	rawdata = requests.get(resturl, auth=requests.auth.HTTPBasicAuth(cfg['cfluser'], cfg['cflpass'])).json()['body']['storage']['value']
-#	
-#	soup = BeautifulSoup(rawdata, 'html.parser')
-#	
-#	tables=soup.findAll('table')
-#	
-#	tableid=0
-#	maindict={}
-#	
-#	for table in tables:
-#		# Выбираем заголовки колонок
-#		headsdict = tuple(map(lambda h: h.get_text().strip(), table.findAll('th')))
-#		# Собираем и вычищаем информационную часть таблицы
-#		rowsdict = tuple(map(lambda row: (map (lambda col: col.get_text(), row.findAll('td'))), table.findAll('tr')))
-#		# Комбинируем заголовки с данными
-#		tabledict = tuple(map(lambda row: dict(zip(headsdict, row)), filter(lambda row: len(row)==len(headsdict), rowsdict)))
-#		#print filter(lambda row: len(row)==len(headsdict), rowsdict)
-#		for row in tabledict:
-#			for key, value in row.items():
-#				print '{} - {}'.format(key.encode('utf-8'), value.encode('utf-8'))
-#	
-#			print;print;
-#		
-#	#

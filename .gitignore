@@ -1,3 +1,6 @@
 ._.DS_Store
 .DS_Store
+.setupcon.pyc
+bdn.pyc
 json
+mail_template/example.html

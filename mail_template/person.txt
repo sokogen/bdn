@@ -1,0 +1,1 @@
+<li><a href="{email}">{name} <small>({direction})</small></a></li>

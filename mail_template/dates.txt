@@ -1,0 +1,4 @@
+<hr><h3>{date}:</h3>
+<ul>
+{persons}
+</ul>
